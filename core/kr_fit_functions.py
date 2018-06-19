@@ -90,6 +90,61 @@ def lifetime_in_XYRange(kre : KrEvent,
                  err  = np.array(f.errors),
                  chi2 = chi2(f, x, y, yu))
 
+
+def lifetimes_in_XYRange(kre : KrEvent,
+                        krnb: KrNBins,
+                        krb : KrBins,
+                        krr : KrRanges,
+                        xyr : XYRanges,
+                        XL = [(-125, -75), (-125, -75), (75, 125),(75, 125)],
+                        YL = [(-125, -75), (75, 125), (75, 125),(-125, -75)],
+                        figsize=(8,8))->KrFit:
+    """ Plots lifetime fitted to a range of XY values"""
+
+
+    # Specify the range and number of bins in Z
+    Znbins = krnb.Z
+    Zrange = krr.Z
+
+    fig = plt.figure(figsize=figsize)
+
+    # XL = [(-125, -75), (-125, -75), (75, 125),(75, 125)]
+    # YL = [(-125, -75), (75, 125), (75, 125),(-125, -75)]
+
+    for i, pair in enumerate(zip(XL,YL)):
+        xlim = pair[0]
+        ylim = pair[1]
+        print(f'xlim = {xlim}, ylim ={ylim}')
+
+        # select data in region defined by xyr
+        xyr = XYRanges(X=xlim, Y=ylim )
+        kre_xy = select_in_XYRange(kre, xyr)
+        z, e = kre_xy.Z, kre_xy.E
+
+        ax = fig.add_subplot(2, 2, i+1)
+        x, y, yu = fitf.profileX(z, e, Znbins, Zrange)
+        plt.errorbar(x, y, yu, np.diff(x)[0]/2, fmt="kp", ms=7, lw=3)
+
+        # Fit profile to an exponential
+        seed = expo_seed(x, y)
+        f    = fitf.fit(fitf.expo, x, y, seed, sigma=yu)
+
+        # plot fitted value
+        plt.plot(x, f.fn(x), "r-", lw=4)
+
+
+        labels("", "Energy (pes)", "Lifetime fit")
+
+
+        kf = KrFit(par  = np.array(f.values),
+                   err  = np.array(f.errors),
+                   chi2 = chi2(f, x, y, yu))
+
+
+        print_fit(kf)
+
+
+
 def fit_slices_2d_expo(kre : KrEvent,
                        krnb: KrNBins,
                        krb : KrBins,
@@ -314,22 +369,6 @@ def fit_lifetime_slices(kre : KrEvent,
                        LT   = Measurement(slope, slopeu),
                        chi2 = chi2,
                        valid = valid)
-
-# def profile_and_fit(X, Y, xrange, yrange, nbins, fitpar, label):
-#     fitOpt  = "r"
-#     xe = (xrange[1] - xrange[0])/nbins
-#
-#     x, y, sy = fitf.profileX(X, Y, nbins=nbins,
-#                              xrange=xrange, yrange=yrange, drop_nan=True)
-#     sel  = in_range(x, xrange[0], xrange[1])
-#     x, y, sy = x[sel], y[sel], sy[sel]
-#     f = fitf.fit(fitf.expo, x, y, fitpar, sigma=sy)
-#
-#     plt.errorbar(x=x, xerr=xe, y=y, yerr=sy,
-#                  linestyle='none', marker='.')
-#     plt.plot(x, f.fn(x), fitOpt)
-#     #set_plot_labels(xlabel=label[0], ylabel=label[1], grid=True)
-#     return f, x, y, sy
 
 
 def print_fit(krf: KrFit):
