@@ -71,6 +71,48 @@ def xy_event_map(kre : KrEvent, kB: KrBins) -> np.array :
     return nevt
 
 
+
+def h1n(n, nx,ny,
+         h1ds,
+         bins,
+         ranges,
+         xlabels,
+         ylabels,
+         titles = None,
+         legends = None,
+         figsize =(10,10)):
+
+    fig = plt.figure(figsize=figsize)
+
+    for i in range(n):
+        ax = fig.add_subplot(nx, ny, i+1)
+        x = h1ds[i]
+        r = ranges[i]
+
+        x1 = loc_elem_1d(x, find_nearest(x,r[0]))
+        x2 = loc_elem_1d(x, find_nearest(x,r[1]))
+        xmin = min(x1, x2)
+        xmax = max(x1, x2)
+        x2 = x[xmin:xmax]
+        o  = np.ones(len(x2))
+        mu, std = weighted_mean_and_std(x2, o)
+
+        ax.set_xlabel(xlabels[i],fontsize = 11)
+        ax.set_ylabel(ylabels[i], fontsize = 11)
+        ax.hist(x,
+                bins= bins[i],
+                range=r,
+                histtype='step',
+                edgecolor='black',
+                linewidth=1.5,
+                label=r'$\mu={:7.2f},\ \sigma={:7.2f}$'.format(mu, std))
+        ax.legend(fontsize= 10, loc=legends[i])
+        plt.grid(True)
+        if titles:
+            plt.title(titles[i])
+
+    plt.tight_layout()
+
 def h1d_4(h1ds,
           bins,
           ranges,

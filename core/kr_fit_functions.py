@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib.dates  as md
 from   invisible_cities.core.core_functions import weighted_mean_and_var
 from   invisible_cities.core.core_functions import loc_elem_1d
 from   invisible_cities.core.core_functions import in_range
@@ -27,7 +28,72 @@ from . kr_types import Ranges
 from . kr_types import KrFit
 from . kr_types import KrLTSlices
 
+from typing      import List
+
 labels = conditional_labels(True)
+
+
+def lifetimes_in_TRange(kre : KrEvent,
+                        krnb: KrNBins,
+                        krb : KrBins,
+                        krr : KrRanges,
+                        TL)->List[KrFit]:
+    """ Plots lifetime fitted to a range of T values"""
+
+    # Specify the range and number of bins in Z
+    Znbins = krnb.Z
+    Zrange = krr.Z
+
+    kfs=[]
+    for  tlim in TL:
+
+        # select data
+        kre_t = select_in_TRange(kre, *tlim)
+        z, e = kre_t.Z, kre_t.E
+
+        x, y, yu = fitf.profileX(z, e, Znbins, Zrange)
+        # Fit profile to an exponential
+        seed = expo_seed(x, y)
+        f    = fitf.fit(fitf.expo, x, y, seed, sigma=yu)
+
+        kf = KrFit(par  = np.array(f.values),
+                   err  = np.array(f.errors),
+                   chi2 = chi2(f, x, y, yu))
+
+        #krf.print_fit(kf)
+        kfs.append(kf)
+
+    return kfs
+
+
+def s12_time_profile(krdst, Tnbins, Trange, timeStamps, figsize=(8,8)):
+
+    xfmt = md.DateFormatter('%d-%m %H:%M')
+    fig = plt.figure(figsize=figsize)
+
+    x, y, yu = fitf.profileX(krdst.T, krdst.E, Tnbins, Trange)
+    ax = fig.add_subplot(1, 2, 1)
+    #plt.figure()
+    #ax=plt.gca()
+    #fig.add_subplot(1, 2, 1)
+    ax.xaxis.set_major_formatter(xfmt)
+    plt.errorbar(timeStamps, y, yu, fmt="kp", ms=7, lw=3)
+    plt.xlabel('date')
+    plt.ylabel('S2 (pes)')
+    plt.xticks( rotation=25 )
+
+    x, y, yu = fitf.profileX(krdst.T, krdst.S1, Tnbins, Trange)
+    ax = fig.add_subplot(1, 2, 2)
+    #ax=plt.gca()
+
+    #xfmt = md.DateFormatter('%d-%m %H:%M')
+    ax.xaxis.set_major_formatter(xfmt)
+    plt.errorbar(timeStamps, y, yu, fmt="kp", ms=7, lw=3)
+    plt.xlabel('date')
+    plt.ylabel('S1 (pes)')
+    plt.xticks( rotation=25 )
+    plt.tight_layout()
+
 
 def select_in_XYRange(kre : KrEvent, xyr : XYRanges)->KrEvent:
     """ Selects a KrEvent in  a range of XY values"""
@@ -39,6 +105,22 @@ def select_in_XYRange(kre : KrEvent, xyr : XYRanges)->KrEvent:
                    Y = kre.Y[sel],
                    Z = kre.Z[sel],
                    E = kre.E[sel],
+                   S1 = kre.S1[sel],
+                   T = kre.T[sel],
+                   Q = kre.Q[sel])
+
+
+def select_in_TRange(kre : KrEvent, tmin : float, tmax : float)->KrEvent:
+    """ Selects a KrEvent in  a range of T values"""
+
+    sel  = in_range(kre.T, tmin, tmax)
+
+    return KrEvent(X = kre.X[sel],
+                   Y = kre.Y[sel],
+                   Z = kre.Z[sel],
+                   E = kre.E[sel],
+                   S1 = kre.S1[sel],
+                   T = kre.T[sel],
                    Q = kre.Q[sel])
 
 
